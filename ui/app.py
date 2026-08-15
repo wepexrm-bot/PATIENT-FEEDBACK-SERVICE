@@ -134,11 +134,19 @@ with analyze_tab:
                     meta.append(f"model {result['model_version']}")
                 if result.get("latency_ms") is not None:
                     meta.append(f"latency {result['latency_ms']:.1f} ms")
+                if result.get("oov_score") is not None:
+                    meta.append(f"out-of-vocab {result['oov_score']:.2f}")
                 st.caption(" | ".join(meta))
 
                 if result.get("flagged_for_review"):
                     reason = result.get("review_reason") or "unknown"
                     st.warning(f"Flagged for review — reason: {reason}")
+                    if "domain-shift" in reason:
+                        st.caption(
+                            "This comment uses words outside the model's training "
+                            "vocabulary, so its confidence isn't trustworthy — a human "
+                            "should verify the sentiment."
+                        )
                 else:
                     st.success("Not flagged for review")
 
@@ -171,6 +179,7 @@ with queue_tab:
                     "label": i["label"],
                     "confidence": round(i["confidence"], 3),
                     "model_version": i["model_version"],
+                    "oov_score": round(i["oov_score"], 3) if i.get("oov_score") is not None else "-",
                     "redacted_text": i["redacted_text"],
                 }
                 for i in items
@@ -188,6 +197,8 @@ with queue_tab:
             f"Model label: **{item['label']}** · confidence **{item['confidence']:.3f}** "
             f"· version **{item['model_version']}** · reason **{item.get('reason')}**"
         )
+        if item.get("oov_score") is not None:
+            st.caption(f"out-of-vocabulary ratio: {item['oov_score']:.3f}")
 
         reviewer = st.text_input("Reviewer name", value="console-reviewer")
         corrected = st.selectbox(

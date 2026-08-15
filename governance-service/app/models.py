@@ -25,6 +25,7 @@ class Prediction(Base):
     latency_ms = Column(Float, nullable=True)
     redacted_text = Column(Text, nullable=True)       # sanitized text shown to reviewers
     manifest_hash = Column(String, nullable=True)     # links to redaction audit
+    oov_score = Column(Float, nullable=True)          # out-of-vocab ratio (0-1)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
 
 
@@ -33,7 +34,7 @@ class ReviewQueueItem(Base):
     id = Column(Integer, primary_key=True)
     prediction_id = Column(Integer, ForeignKey("predictions.id"))
     status = Column(String, default="pending")  # pending | reviewed
-    reason = Column(String, nullable=True)      # low-confidence | sampled | both
+    reason = Column(String, nullable=True)      # low-confidence | sampled | domain-shift (+ combos)
     corrected_label = Column(String, nullable=True)
     reviewer = Column(String, nullable=True)
     reviewed_at = Column(DateTime, nullable=True)

@@ -13,6 +13,7 @@ from app import sacr_compat
 from app.config import MODEL_PATH, MODEL_VERSION
 
 _META = None
+_VOCAB: set[str] | None = None
 
 
 def load_meta() -> dict:
@@ -49,12 +50,17 @@ def backend_name() -> str:
 
 
 def _load_joblib_predictor():
+    global _VOCAB
     import joblib
 
     model = joblib.load(str(Path(MODEL_PATH) / "model.joblib"))
     labels = get_labels()
     if not hasattr(model, "predict_proba"):
         raise RuntimeError("converted model must expose predict_proba")
+    if hasattr(model, "named_steps") and "vect" in model.named_steps:
+        _VOCAB = set(model.named_steps["vect"].vocabulary_)
+    else:
+        _VOCAB = None
 
     def run(text: str) -> tuple[str, float]:
         cleaned = sacr_compat.data_cleaning(text)
@@ -66,6 +72,8 @@ def _load_joblib_predictor():
 
 
 def _load_onnx_predictor():
+    global _VOCAB
+    _VOCAB = None
     import numpy as np
     import onnxruntime as ort
 
@@ -106,3 +114,19 @@ def load_predictor():
         else:
             _PREDICTOR = _load_onnx_predictor()
     return _PREDICTOR
+
+
+def oov_score(text: str) -> float | None:
+    """Fraction of the cleaned comment's lemmas missing from the model's vocab.
+
+    Returns None when the loaded backend exposes no vocabulary (e.g. ONNX).
+    A high score means the text is out-of-domain for the model, so its
+    prediction confidence should not be trusted as-is.
+    """
+    if _VOCAB is None:
+        return None
+    cleaned = sacr_compat.data_cleaning(text)
+    lemmas = sacr_compat.LemmaTokenizer()(cleaned)
+    if not lemmas:
+        return 0.0
+    return sum(1 for w in lemmas if w not in _VOCAB) / len(lemmas)

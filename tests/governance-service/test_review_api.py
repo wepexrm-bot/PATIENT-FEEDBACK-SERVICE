@@ -108,7 +108,7 @@ def test_log_prediction_sampled_and_low_confidence(client, monkeypatch):
     )
     assert resp.json()["flagged_for_review"] is True
     items = client.get("/review-queue").json()["items"]
-    assert items and items[0]["reason"] == "both"
+    assert items and items[0]["reason"] == "low-confidence+sampled"
 
 
 def test_queue_reason_low_confidence(client):

@@ -24,6 +24,7 @@ async def predict_sentiment(payload: dict):
         "confidence": result["confidence"],
         "model_version": result["model_version"],
         "latency_ms": result["latency_ms"],
+        "oov_score": result.get("oov_score"),
     }
 
     flagged_for_review = None

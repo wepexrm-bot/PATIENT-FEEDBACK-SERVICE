@@ -71,6 +71,21 @@ def test_model_version_defaults_when_missing(joblib_weights, monkeypatch):
     assert model_loader.get_version() == "v-fallback"
 
 
+def test_predict_includes_oov_score(joblib_weights):
+    result = inference.predict("great care")
+    assert result["oov_score"] == 0.0
+
+
+def test_oov_score_all_vocab(joblib_weights):
+    model_loader.load_predictor()
+    assert model_loader.oov_score("great care") == 0.0
+
+
+def test_oov_score_out_of_vocab(joblib_weights):
+    model_loader.load_predictor()
+    assert model_loader.oov_score("xyzzy plugh") == 1.0
+
+
 def test_backend_name_detects_joblib(joblib_weights):
     assert model_loader.backend_name() == "joblib"
 

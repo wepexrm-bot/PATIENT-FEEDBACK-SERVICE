@@ -12,6 +12,10 @@ LABEL_CONFIDENCE_THRESHOLDS: dict[str, float] = json.loads(
 # (0 disables sampling). Catches confident-but-wrong predictions and gives the
 # drift window an unbiased sample.
 SAMPLE_REVIEW_EVERY_N = int(os.getenv("SAMPLE_REVIEW_EVERY_N", "0"))
+# Out-of-vocabulary guardrail: queue a prediction for review when the fraction
+# of its tokens missing from the model vocabulary reaches this bar, regardless
+# of confidence. Catches out-of-domain text the model answers confidently-wrong.
+OOV_RATIO_THRESHOLD = float(os.getenv("OOV_RATIO_THRESHOLD", "0.2"))
 DRIFT_WINDOW_SIZE = int(os.getenv("DRIFT_WINDOW_SIZE", "500"))
 DATABASE_URL = os.getenv(
     "DATABASE_URL",

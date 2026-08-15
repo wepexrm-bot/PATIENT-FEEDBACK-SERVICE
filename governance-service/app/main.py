@@ -4,7 +4,7 @@ from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
-from app.config import SAMPLE_REVIEW_EVERY_N
+from app.config import OOV_RATIO_THRESHOLD, SAMPLE_REVIEW_EVERY_N
 from app.db import SessionLocal, engine
 from app.models import Base, Prediction, RedactionAudit, ReviewQueueItem
 from app.review_api import router as review_router
@@ -26,6 +26,11 @@ def _ensure_schema():
 
 _ensure_schema()
 Base.metadata.create_all(bind=engine)
+if engine.dialect.name != "sqlite":
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE predictions ADD COLUMN IF NOT EXISTS oov_score DOUBLE PRECISION")
+        )
 
 app = FastAPI(title="Governance Service")
 app.include_router(review_router)
@@ -41,6 +46,7 @@ class PredictionLog(BaseModel):
     latency_ms: float | None = None
     redacted_text: str | None = None
     manifest_hash: str | None = None
+    oov_score: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class AuditPayload(BaseModel):
@@ -61,6 +67,7 @@ def log_prediction(payload: PredictionLog):
             latency_ms=payload.latency_ms,
             redacted_text=payload.redacted_text,
             manifest_hash=payload.manifest_hash,
+            oov_score=payload.oov_score,
         )
         session.add(pred)
         session.commit()
@@ -68,15 +75,17 @@ def log_prediction(payload: PredictionLog):
 
         flagged = needs_review(pred.label, pred.confidence)
         sampled = SAMPLE_REVIEW_EVERY_N > 0 and pred.id % SAMPLE_REVIEW_EVERY_N == 0
-        queued = flagged or sampled
-        reason = None
+        domain_shift = OOV_RATIO_THRESHOLD > 0 and (pred.oov_score or 0.0) >= OOV_RATIO_THRESHOLD
+        reasons = []
+        if flagged:
+            reasons.append("low-confidence")
+        if sampled:
+            reasons.append("sampled")
+        if domain_shift:
+            reasons.append("domain-shift")
+        queued = bool(reasons)
+        reason = "+".join(reasons) if reasons else None
         if queued:
-            if flagged and sampled:
-                reason = "both"
-            elif flagged:
-                reason = "low-confidence"
-            else:
-                reason = "sampled"
             session.add(ReviewQueueItem(prediction_id=pred.id, reason=reason))
             session.commit()
 

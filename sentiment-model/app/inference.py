@@ -1,7 +1,7 @@
 import hashlib
 import time
 
-from app.model_loader import get_version, load_predictor
+from app.model_loader import get_version, load_predictor, oov_score
 
 
 def predict(text: str) -> dict:
@@ -15,4 +15,5 @@ def predict(text: str) -> dict:
         "model_version": get_version(),
         "latency_ms": round(latency_ms, 2),
         "input_hash": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "oov_score": oov_score(text),
     }

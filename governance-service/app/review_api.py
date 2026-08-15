@@ -36,6 +36,7 @@ def list_pending_reviews():
                 "label": i.prediction.label,
                 "confidence": i.prediction.confidence,
                 "model_version": i.prediction.model_version,
+                "oov_score": i.prediction.oov_score,
             }
             for i in items
         ]

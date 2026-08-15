@@ -32,3 +32,4 @@ class FeedbackOut(BaseModel):
     latency_ms: float | None = None
     flagged_for_review: bool | None = None
     review_reason: str | None = None
+    oov_score: float | None = None
