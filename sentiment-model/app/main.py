@@ -26,13 +26,20 @@ async def predict_sentiment(payload: dict):
         "latency_ms": result["latency_ms"],
     }
 
+    flagged_for_review = None
+    review_reason = None
     try:
         async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SECONDS) as client:
             resp = await client.post(f"{GOVERNANCE_URL}/log-prediction", json=governance_payload)
             resp.raise_for_status()
+            gov = resp.json()
+            flagged_for_review = gov.get("flagged_for_review")
+            review_reason = gov.get("review_reason")
     except (httpx.RequestError, httpx.HTTPStatusError):
         logger.warning("governance logging failed; returning prediction without log")
 
+    result["flagged_for_review"] = flagged_for_review
+    result["review_reason"] = review_reason
     return result
 
 

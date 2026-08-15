@@ -69,6 +69,7 @@ def log_prediction(payload: PredictionLog):
         flagged = needs_review(pred.label, pred.confidence)
         sampled = SAMPLE_REVIEW_EVERY_N > 0 and pred.id % SAMPLE_REVIEW_EVERY_N == 0
         queued = flagged or sampled
+        reason = None
         if queued:
             if flagged and sampled:
                 reason = "both"
@@ -87,7 +88,7 @@ def log_prediction(payload: PredictionLog):
                 "confidence": payload.confidence,
             },
         )
-        return {"status": "logged", "flagged_for_review": queued}
+        return {"status": "logged", "flagged_for_review": queued, "review_reason": reason}
 
 
 @app.post("/redaction-audit")

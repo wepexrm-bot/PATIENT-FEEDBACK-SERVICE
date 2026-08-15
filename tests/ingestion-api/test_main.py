@@ -20,6 +20,9 @@ def mock_sanitizer():
         "confidence": 0.92,
         "model_version": "v1.0.0",
         "redacted_text": "The staff were [PATIENT_NAME] great",
+        "latency_ms": 12.5,
+        "flagged_for_review": True,
+        "review_reason": "sampled",
     }
     with patch.object(main_module, "PII_SANITIZER_URL", "http://sanitizer:8001"), patch(
         "httpx.AsyncClient"
@@ -39,6 +42,9 @@ def test_feedback_forwards_and_returns_sentiment(client, mock_sanitizer):
     body = resp.json()
     assert body["label"] == "positive"
     assert body["model_version"] == "v1.0.0"
+    assert body["latency_ms"] == 12.5
+    assert body["flagged_for_review"] is True
+    assert body["review_reason"] == "sampled"
 
 
 def test_feedback_rejects_bad_source(client):

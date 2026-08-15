@@ -29,3 +29,6 @@ class FeedbackOut(BaseModel):
     confidence: float
     model_version: str
     redacted_text: str
+    latency_ms: float | None = None
+    flagged_for_review: bool | None = None
+    review_reason: str | None = None

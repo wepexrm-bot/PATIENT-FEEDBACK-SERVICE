@@ -170,6 +170,8 @@ def main() -> None:
     print(f"brier       : {brier:.4f}  (perfect = 0.0)")
     print(f"ECE         : {ece:.4f}  (threshold {args.ece_threshold:.2f}) -> {verdict}")
 
+    sys.exit(0 if ece <= args.ece_threshold else 1)
+
 
 if __name__ == "__main__":
     main()

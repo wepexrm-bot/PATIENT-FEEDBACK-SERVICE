@@ -1,9 +1,13 @@
 import json
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from app import inference, model_loader
+from app import main as main_module
+from app.main import app
+from fastapi.testclient import TestClient
 
 
 @pytest.fixture()
@@ -125,3 +129,39 @@ def test_onnx_predictor_with_fake_session(monkeypatch, tmp_path):
     label, conf = predictor("great care")
     assert label == "positive"
     assert conf == pytest.approx(0.7)
+
+
+def test_predict_passes_through_review_flags(joblib_weights, monkeypatch):
+    gov_resp = {
+        "status": "logged",
+        "flagged_for_review": True,
+        "review_reason": "low-confidence",
+    }
+
+    async def fake_post(*args, **kwargs):
+        return _FakeResponse(gov_resp)
+
+    monkeypatch.setattr(main_module, "GOVERNANCE_URL", "http://governance:8010")
+    with patch("httpx.AsyncClient") as mock_cls:
+        mock_cls.return_value.__aenter__.return_value.post = fake_post
+        with TestClient(app) as c:
+            resp = c.post(
+                "/predict",
+                json={"text": "nurse was kind and helpful", "patient_ref": "tok-1"},
+            )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["flagged_for_review"] is True
+    assert body["review_reason"] == "low-confidence"
+
+
+class _FakeResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self._payload
