@@ -1,0 +1,58 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service:
+          - name: ingestion-api
+            dockerfile: ingestion-api/Dockerfile
+          - name: pii-sanitizer
+            dockerfile: pii-sanitizer/Dockerfile
+          - name: sentiment-model
+            dockerfile: sentiment-model/Dockerfile
+          - name: governance-service
+            dockerfile: governance-service/Dockerfile
+          - name: streamlit-ui
+            dockerfile: ui/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/patient-feedback-${{ matrix.service.name }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd ~/patient-feedback-service
+            git pull origin main
+            export IMAGE_TAG=${{ github.sha }}
+            export GITHUB_REPO_OWNER=${{ github.repository_owner }}
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            docker system prune -f

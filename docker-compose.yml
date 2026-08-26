@@ -81,5 +81,27 @@ services:
       retries: 10
       start_period: 10s
 
+  streamlit-ui:
+    build:
+      context: .
+      dockerfile: ui/Dockerfile
+    ports:
+      - "8501:8501"
+    depends_on:
+      ingestion-api:
+        condition: service_healthy
+      governance-service:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      - INGESTION_API_URL=http://ingestion-api:8000
+      - GOVERNANCE_API_URL=http://governance-service:8010
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8501/_stcore/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
 volumes:
   pgdata:

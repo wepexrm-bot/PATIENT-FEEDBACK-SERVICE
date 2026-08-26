@@ -1,0 +1,17 @@
+patient-feedback.duckdns.org {
+    reverse_proxy ingestion-api:8000
+    encode gzip
+    log {
+        output stdout
+        format json
+    }
+}
+
+ui.patient-feedback.duckdns.org {
+    reverse_proxy streamlit-ui:8501
+    encode gzip
+    log {
+        output stdout
+        format json
+    }
+}

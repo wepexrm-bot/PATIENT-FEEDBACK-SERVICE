@@ -1,6 +1,7 @@
 import json
 
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
@@ -34,6 +35,14 @@ if engine.dialect.name != "sqlite":
 
 app = FastAPI(title="Governance Service")
 app.include_router(review_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class PredictionLog(BaseModel):

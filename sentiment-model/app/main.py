@@ -1,5 +1,6 @@
 import httpx
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import GOVERNANCE_URL, HTTP_TIMEOUT_SECONDS
 from app.inference import predict
@@ -8,6 +9,14 @@ from shared.logging_config import configure_logging
 logger = configure_logging("sentiment-model")
 
 app = FastAPI(title="Sentiment Model Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/predict")

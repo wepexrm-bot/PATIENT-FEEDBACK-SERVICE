@@ -5,14 +5,16 @@ Talks to the host-exposed APIs:
   - ingestion-api   http://localhost:8000
   - governance      http://localhost:8010
 """
+import os
+
 import requests
 import streamlit as st
 
 st.set_page_config(page_title="Patient Feedback Console", layout="wide")
 
-INGESTION_URL = "http://localhost:8000"
-GOVERNANCE_URL = "http://localhost:8010"
-REVIEW_TOKEN = "dev-reviewer-token"
+INGESTION_URL = os.getenv("INGESTION_API_URL", "http://localhost:8000")
+GOVERNANCE_URL = os.getenv("GOVERNANCE_API_URL", "http://localhost:8010")
+REVIEW_TOKEN = os.getenv("REVIEW_TOKEN", "dev-reviewer-token")
 LABELS = ["negative", "neutral", "positive"]
 
 
