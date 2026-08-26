@@ -245,3 +245,7 @@ Targets a single always-on VM running the compose stack, with Caddy for HTTPS
 guardrail ships as a mandatory layer because the model is trained on drug
 reviews, not hospital feedback — out-of-domain comments are forced to human
 review rather than trusted at face value.
+
+## License
+
+[MIT](LICENSE)
